@@ -4,8 +4,6 @@ uniform float uTimeScale;
 uniform vec3 uMousePos;
 uniform float uMovement;
 
-attribute vec3 aRandomness;
-attribute float aScale;
 attribute vec3 aFinalPosition;
 attribute vec3 aRandomMove;
 attribute float aIsOutside;

@@ -75,7 +75,7 @@ const generatePixels = () => {
     const positions = new Float32Array(parameters.count * 3)
     const finalPosition = new Float32Array(parameters.count * 3)
     const randomMove = new Float32Array(parameters.count * 3)
-    const isOutside = new Float32Array(parameters.randomCount)
+    const isOutside = new Float32Array(parameters.count)
 
     for (let i = 0; i < parameters.count; i++) {
         const i3 = i * 3
