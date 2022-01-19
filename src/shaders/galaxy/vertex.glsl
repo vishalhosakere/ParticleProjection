@@ -2,11 +2,13 @@ uniform float uTime;
 uniform float uSize;
 uniform float uTimeScale;
 uniform vec3 uMousePos;
+uniform float uMovement;
 
 attribute vec3 aRandomness;
 attribute float aScale;
 attribute vec3 aFinalPosition;
 attribute vec3 aRandomMove;
+attribute float aIsOutside;
 
 varying vec3 vColor;
 
@@ -232,29 +234,9 @@ void main()
     float newX = positionCopy.x + (aFinalPosition.x - positionCopy.x) * uTime * 0.5;
     float newY = positionCopy.y + (aFinalPosition.y - positionCopy.y) * uTime * 0.5;
     float newZ = positionCopy.z + (aFinalPosition.z - positionCopy.z) * uTime * 0.5;
-    if (positionCopy.x < aFinalPosition.x && newX < aFinalPosition.x) {
-        positionCopy.x = newX;
-    } else if (positionCopy.x > aFinalPosition.x && newX > aFinalPosition.x) {
-        positionCopy.x = newX;
-    } else {
-        positionCopy.x = aFinalPosition.x;
-    }
 
-    if (positionCopy.y < aFinalPosition.y && newY < aFinalPosition.y) {
-        positionCopy.y = newY;
-    } else if (positionCopy.y > aFinalPosition.y && newY > aFinalPosition.y) {
-        positionCopy.y = newY;
-    } else {
-        positionCopy.y = aFinalPosition.y;
-    }
-
-    if (positionCopy.z < aFinalPosition.z && newZ < aFinalPosition.z) {
-        positionCopy.z = newZ;
-    } else if (positionCopy.z > aFinalPosition.z && newZ > aFinalPosition.z) {
-        positionCopy.z = newZ;
-    } else {
-        positionCopy.z = aFinalPosition.z;
-    }
+    positionCopy = mix(aFinalPosition, positionCopy, clamp(1.-uTime / 3.0, 0., 1.));
+    vec3 positionDecided = vec3(positionCopy);
 
     // positionCopy.x += sin(uTime) *  sin(aRandomMove.x)  * 0.01;
     // positionCopy.y += aRandomMove.y * uTime;
@@ -287,15 +269,19 @@ void main()
     
 	vec3 vel = (positionCopy - position) * 0.1;
 
-
     // apply updates
     vel = 0.9 * vel + acc * 0.1 + 0.1 * snoiseVec3(position + vec3(uTime)) ;
 
-    positionCopy += vel * 0.0008;
+    positionCopy += vel * 0.00008 / distance(positionDecided, uMousePos);
+
+    positionCopy = mix(positionDecided, positionCopy, clamp(abs(uMovement)*10., 0., 8.));
+
+
+    // outside random movement
+    positionCopy += aIsOutside * snoiseVec3(position + vec3(uTime)) * 0.001;
 
     vec4 modelPosition = modelMatrix * vec4(positionCopy, 1.0);
 
-    
             
 
     vec4 viewPosition = viewMatrix * modelPosition;

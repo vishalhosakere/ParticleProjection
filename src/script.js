@@ -55,6 +55,9 @@ const loadAndGenerate = () => {
     const model = loader.load('models/sword.obj', loaded)
 }
 
+function lerp(start, end, amt) {
+    return (1 - amt) * start + amt * end
+}
 
 const generatePixels = () => {
     if (points !== null) {
@@ -67,11 +70,12 @@ const generatePixels = () => {
      * Geometry
      */
     geometry = new THREE.BufferGeometry()
+    parameters.randomCount = parameters.count / 10;
 
     const positions = new Float32Array(parameters.count * 3)
     const finalPosition = new Float32Array(parameters.count * 3)
     const randomMove = new Float32Array(parameters.count * 3)
-
+    const isOutside = new Float32Array(parameters.randomCount)
 
     for (let i = 0; i < parameters.count; i++) {
         const i3 = i * 3
@@ -83,6 +87,13 @@ const generatePixels = () => {
         finalPosition[i3] = tempPosition.x / 5
         finalPosition[i3 + 1] = tempPosition.y / 5 - 3
         finalPosition[i3 + 2] = tempPosition.z / 5
+        if (i < parameters.randomCount) {
+            finalPosition[i3] = lerp(finalPosition[i3], positions[i3], Math.random())
+            finalPosition[i3 + 1] = lerp(finalPosition[i3 + 1], positions[i3 + 1], Math.random())
+            finalPosition[i3 + 2] = lerp(finalPosition[i3 + 2], positions[i3 + 2], Math.random())
+            isOutside[i] = 1;
+        }
+
 
         randomMove[i3] = (Math.random() - 0.5)
         randomMove[i3 + 1] = (Math.random() - 0.5)
@@ -92,6 +103,7 @@ const generatePixels = () => {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     geometry.setAttribute('aFinalPosition', new THREE.BufferAttribute(finalPosition, 3))
     geometry.setAttribute('aRandomMove', new THREE.BufferAttribute(randomMove, 3))
+    geometry.setAttribute('aIsOutside', new THREE.BufferAttribute(isOutside, 1))
 
     /**
      * Material
@@ -104,7 +116,8 @@ const generatePixels = () => {
         {
             uTime: { value: 0 },
             uSize: { value: parameters.size * renderer.getPixelRatio() },
-            uMousePos: { value: new THREE.Vector3(-999, -999, 0) }
+            uMousePos: { value: new THREE.Vector3(-999, -999, 0) },
+            uMovement: { value: 0 }
         },
         vertexShader: galaxyVertexShader,
         fragmentShader: galaxyFragmentShader
@@ -169,6 +182,11 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 loadAndGenerate()
 
 
+var lastX = 0;
+var lastY = 0;
+var speed = 0;
+var movement = 0;
+
 window.addEventListener('mousemove', (event) => {
     var mouseVector = new THREE.Vector3();
     mouseVector.z = 0.0;
@@ -191,10 +209,15 @@ window.addEventListener('mousemove', (event) => {
 
     mouseVector.multiplyScalar(distance).add(camera.position);
     // mouseVector.applyEuler( 0, pointMesh.rotation.y, 0);
-    material.uniforms.uMousePos.value = mouseVector;
+    if (material)
+        material.uniforms.uMousePos.value = mouseVector;
 
     var centerX = window.innerWidth * 0.5;
     var centerY = window.innerHeight * 0.5;
+
+    speed = speed * 0.05 - (event.pageX - lastX) * 0.3;
+    lastX = event.pageX
+
 
     camera.position.y = (event.clientX - centerX) * 0.0001;
     camera.position.x = (event.clientY - centerY) * 0.0001;
@@ -210,11 +233,18 @@ const tick = () => {
     const elapsedTime = clock.getElapsedTime()
 
     // Update material
-    if (material)
+    if (material) {
+        movement -= (movement - speed) * 0.05
+        speed *= 0.99
         material.uniforms.uTime.value = elapsedTime
+        material.uniforms.uMovement.value = movement
+        // console.log(movement)
+    }
 
     // if (points)
     //     points.rotation.y = elapsedTime
+
+
 
     // Update controls
     // controls.update()
